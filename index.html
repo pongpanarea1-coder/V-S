@@ -69,6 +69,10 @@ button{border:0;border-radius:12px;min-height:48px;padding:12px 15px;font:inheri
 <label><input type="radio" name="caseType" value="patient" checked> ผู้ป่วย (SBAR)</label>
 <label><input type="radio" name="caseType" value="injury"> ผู้บาดเจ็บ (MIST)</label>
 </div>
+<div class="field full" id="mechanismField" hidden style="margin-top:13px">
+<label for="mechanism">M – Mechanism of Injury (กลไกการบาดเจ็บ)</label>
+<textarea id="mechanism" placeholder="ระบุกลไกการบาดเจ็บ เช่น รถจักรยานยนต์ชนรถยนต์ ผู้บาดเจ็บสวมหมวกนิรภัย กระเด็นตกจากรถ"></textarea>
+</div>
 </section>
 <section class="card">
 <h2>2. ข้อมูลเพิ่มเติม</h2>
@@ -78,7 +82,7 @@ button{border:0;border-radius:12px;min-height:48px;padding:12px 15px;font:inheri
 <div class="field full"><label for="place">สถานที่เกิดเหตุ</label><input id="place" placeholder="ระบุสถานที่เกิดเหตุ"></div>
 <div class="field"><label for="age">อายุ <span class="unit">(ปี)</span></label><input id="age" inputmode="numeric" placeholder="ระบุอายุ"></div>
 <div class="field full"><label for="ud">โรคประจำตัว (U/D)</label><textarea id="ud" placeholder="ระบุโรคประจำตัว / ปฏิเสธโรคประจำตัว"></textarea></div>
-<div class="field full"><label for="symptoms">อาการแสดง / อาการบาดเจ็บ</label><textarea id="symptoms" placeholder="อาการสำคัญ ตำแหน่งบาดเจ็บ กลไกการบาดเจ็บ และอาการแสดง"></textarea></div>
+<div class="field full"><label for="symptoms">อาการแสดง / รายละเอียดการบาดเจ็บ</label><textarea id="symptoms" placeholder="ระบุอาการสำคัญ ตำแหน่งและลักษณะการบาดเจ็บ รวมถึงอาการแสดง"></textarea></div>
 </div>
 </section>
 <button class="primary" type="submit">ยืนยันและสร้างรายงาน</button>
@@ -111,6 +115,10 @@ function updateGcs(){$('gcsTotal').textContent=`GCS: E${$('gE').value} V${$('gV'
 ['gE','gV','gM'].forEach(id=>$(id).addEventListener('change',updateGcs));
 const val=id=>$(id).value.trim()||'-';
 function selectedCaseType(){return document.querySelector('input[name="caseType"]:checked').value}
+function updateCaseFields(){
+  $('mechanismField').hidden = selectedCaseType() !== 'injury';
+}
+document.querySelectorAll('input[name="caseType"]').forEach(el=>el.addEventListener('change',updateCaseFields));
 function makeReport(){
 const type=selectedCaseType();
 const g=`E${$('gE').value} V${$('gV').value} M${$('gM').value} (${total()}/15)`;
@@ -143,7 +151,7 @@ return `ข้อมูลผู้บาดเจ็บ
 
 MIST HANDOVER
 M – Mechanism of injury (กลไกการบาดเจ็บ)
-${val('symptoms')}
+${val('mechanism')}
 
 I – Injury (การบาดเจ็บ)
 ${val('symptoms')}
@@ -174,7 +182,7 @@ function getRecords(){try{return JSON.parse(localStorage.getItem('vs_patient_rec
 function renderRecords(){const arr=getRecords();const root=$('records');root.innerHTML='';if(!arr.length){root.innerHTML='<p class="hint">ยังไม่มีรายการที่บันทึก</p>';return}
 arr.forEach((r,i)=>{const div=document.createElement('div');div.className='record';const head=document.createElement('div');head.className='record-head';const info=document.createElement('div');const strong=document.createElement('strong');strong.textContent=(r.type==='injury'?'ผู้บาดเจ็บ':'ผู้ป่วย')+' · '+(r.place||'ไม่ระบุสถานที่')+' · '+(r.date||'');const small=document.createElement('small');small.textContent=`${r.gender||''} ${r.age||''} ปี · ${r.gcs||''}`;info.append(strong,document.createElement('br'),small);const controls=document.createElement('div');const view=document.createElement('button');view.className='secondary';view.textContent='ดู';view.style.width='auto';view.style.minHeight='38px';view.addEventListener('click',()=>{currentReport=r.report;$('reportHeading').textContent=r.type==='injury'?'รายงานส่งเวร MIST':'รายงานส่งเวร SBAR';$('report').textContent=r.report;$('resultCard').hidden=false;$('resultCard').scrollIntoView({behavior:'smooth'})});const del=document.createElement('button');del.className='danger';del.textContent='ลบ';del.style.marginLeft='5px';del.addEventListener('click',()=>{if(confirm('ลบรายการนี้หรือไม่?')){const a=getRecords();a.splice(i,1);localStorage.setItem('vs_patient_records',JSON.stringify(a));renderRecords()}});controls.append(view,del);head.append(info,controls);div.append(head);root.append(div)})}
 $('saveBtn').addEventListener('click',()=>{try{const r={type:selectedCaseType(),date:val('date'),place:val('place'),gender:val('gender'),age:val('age'),gcs:`E${$('gE').value}V${$('gV').value}M${$('gM').value}`,report:currentReport};const a=getRecords();a.unshift(r);localStorage.setItem('vs_patient_records',JSON.stringify(a));renderRecords();toast('บันทึกข้อมูลในเครื่องแล้ว')}catch(e){toast('บันทึกไม่สำเร็จ พื้นที่จัดเก็บอาจเต็ม')}});
-renderRecords();updateGcs();
+renderRecords();updateGcs();updateCaseFields();
 </script>
 <script>
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {})); }
