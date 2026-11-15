@@ -93,7 +93,10 @@ button{border:0;border-radius:12px;min-height:48px;padding:12px 15px;font:inheri
 <div class="toast" id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);
-$('date').value=new Date().toLocaleDateString('en-CA');
+// ใช้รูปแบบ YYYY-MM-DD ที่ input type=date ต้องการอย่างแน่นอน
+const now = new Date();
+const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+$('date').value = localDate;
 function total(){return +$('gE').value + +$('gV').value + +$('gM').value}
 function updateGcs(){$('gcsTotal').textContent=`GCS: E${$('gE').value} V${$('gV').value} M${$('gM').value} = ${total()}/15`}
 ['gE','gV','gM'].forEach(id=>$(id).addEventListener('change',updateGcs));
@@ -139,7 +142,7 @@ $('patientForm').addEventListener('submit',e=>{
 e.preventDefault();
 const numeric=['temp','pr','rr','spo2','dtx','age'];
 for(const id of numeric){const x=$(id).value.trim();if(x && !/^[0-9]+([./][0-9]+)*$/.test(x)){alert('กรุณาตรวจสอบรูปแบบตัวเลขในช่อง '+id.toUpperCase());$(id).focus();return}}
-if($('bp').value.trim() && !/^\\d{2,3}\\s*\\/\\s*\\d{2,3}$/.test($('bp').value.trim())){alert('กรุณากรอก BP ในรูปแบบ เช่น 120/80');$('bp').focus();return}
+if($('bp').value.trim() && !/^\d{2,3}\s*\/\s*\d{2,3}$/.test($('bp').value.trim())){alert('กรุณากรอก BP ในรูปแบบ เช่น 120/80');$('bp').focus();return}
 if($('spo2').value && (+$('spo2').value<0||+$('spo2').value>100)){alert('SpO₂ ต้องอยู่ระหว่าง 0–100');return}
 if($('age').value && +$('age').value<0){alert('กรุณาระบุอายุให้ถูกต้อง');return}
 currentReport=makeReport();$('report').textContent=currentReport;$('resultCard').hidden=false;$('resultCard').scrollIntoView({behavior:'smooth',block:'start'});

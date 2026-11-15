@@ -1,4 +1,4 @@
-const CACHE_NAME = "vs-handover-v1";
+const CACHE_NAME = "vs-handover-v2";
 const APP_FILES = [
   "./",
   "./index.html",
