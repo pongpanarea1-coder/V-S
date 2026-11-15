@@ -26,6 +26,10 @@ textarea{min-height:86px;resize:vertical}input:focus,select:focus,textarea:focus
 button{border:0;border-radius:12px;min-height:48px;padding:12px 15px;font:inherit;font-weight:700;cursor:pointer}
 .primary{background:var(--accent);color:white;width:100%}.secondary{background:var(--soft);color:var(--accent);width:100%}.danger{background:#fff0f0;color:var(--danger);min-height:38px;padding:7px 11px;font-size:13px}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.case-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.case-choice label{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:10px;border:2px solid var(--line);border-radius:12px;background:#fff;font-size:16px;cursor:pointer;margin:0}
+.case-choice input{width:20px;min-height:20px;margin:0;accent-color:var(--accent)}
+.case-choice label:has(input:checked){border-color:var(--accent);background:var(--soft);color:var(--accent)}
 .report{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7faf9;border:1px solid var(--line);padding:13px;border-radius:12px;font-size:14px}
 .record{border-top:1px solid var(--line);padding:12px 0}.record:first-child{border-top:0}.record-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.record small{color:var(--muted)}
 .notice{font-size:12px;color:var(--muted);line-height:1.5}
@@ -60,6 +64,11 @@ button{border:0;border-radius:12px;min-height:48px;padding:12px 15px;font:inheri
 </div>
 <div class="gcs-total" id="gcsTotal">GCS: E4 V5 M6 = 15/15</div>
 <div class="field" style="margin-top:13px"><label for="treatment">ให้การช่วยเหลือ / Treatment</label><textarea id="treatment" placeholder="เช่น ให้ออกซิเจน ทำแผล ดามอวัยวะ ให้สารน้ำ"></textarea></div>
+<h3>ประเภทการส่งเวร</h3>
+<div class="case-choice" role="radiogroup" aria-label="เลือกประเภทผู้รับบริการ">
+<label><input type="radio" name="caseType" value="patient" checked> ผู้ป่วย (SBAR)</label>
+<label><input type="radio" name="caseType" value="injury"> ผู้บาดเจ็บ (MIST)</label>
+</div>
 </section>
 <section class="card">
 <h2>2. ข้อมูลเพิ่มเติม</h2>
@@ -75,7 +84,7 @@ button{border:0;border-radius:12px;min-height:48px;padding:12px 15px;font:inheri
 <button class="primary" type="submit">ยืนยันและสร้างรายงาน</button>
 </form>
 <section class="card" id="resultCard" hidden>
-<h2>รายงานส่งเวร SBAR + MIST</h2>
+<h2 id="reportHeading">รายงานส่งเวร SBAR</h2>
 <div class="report" id="report"></div>
 <div class="actions">
 <button type="button" class="secondary" id="copyBtn">คัดลอกข้อความ</button>
@@ -101,18 +110,20 @@ function total(){return +$('gE').value + +$('gV').value + +$('gM').value}
 function updateGcs(){$('gcsTotal').textContent=`GCS: E${$('gE').value} V${$('gV').value} M${$('gM').value} = ${total()}/15`}
 ['gE','gV','gM'].forEach(id=>$(id).addEventListener('change',updateGcs));
 const val=id=>$(id).value.trim()||'-';
+function selectedCaseType(){return document.querySelector('input[name="caseType"]:checked').value}
 function makeReport(){
+const type=selectedCaseType();
 const g=`E${$('gE').value} V${$('gV').value} M${$('gM').value} (${total()}/15)`;
 const vitals=`T ${val('temp')} °C | BP ${val('bp')} mmHg | PR ${val('pr')} bpm | RR ${val('rr')} ครั้ง/นาที | SpO₂ ${val('spo2')} % RA | DTX ${val('dtx')} mg/dL`;
-return `ข้อมูล V/S ผู้ป่วย/ผู้บาดเจ็บ
+const person=`${val('gender')} อายุ ${val('age')==='-'?'-':val('age')+' ปี'}`;
+if(type==='patient'){
+return `ข้อมูลผู้ป่วย
 วันที่: ${val('date')}
-สถานที่เกิดเหตุ: ${val('place')}
-เพศ: ${val('gender')} | อายุ: ${val('age')==='-'?'-':val('age')+' ปี'}
+เพศ: ${person}
 
-SBAR
+SBAR HANDOVER
 S – Situation (สถานการณ์)
 ${val('symptoms')}
-ผู้ป่วย/ผู้บาดเจ็บ ${val('gender')} อายุ ${val('age')==='-'?'-':val('age')+' ปี'}
 
 B – Background (ประวัติ)
 U/D: ${val('ud')}
@@ -122,19 +133,28 @@ ${vitals}
 Pupils: R ${$('pR').value} mm / L ${$('pL').value} mm (RTL)
 GCS: ${g}
 
-R – Recommendation (การช่วยเหลือ/ข้อเสนอแนะ)
-${val('treatment')}
+R – Recommendation / Treatment (การช่วยเหลือ)
+${val('treatment')}`;
+}
+return `ข้อมูลผู้บาดเจ็บ
+วันที่: ${val('date')}
+สถานที่เกิดเหตุ: ${val('place')}
+เพศ: ${person}
 
 MIST HANDOVER
-M – Mechanism / Medical complaint:
+M – Mechanism of injury (กลไกการบาดเจ็บ)
 ${val('symptoms')}
-สถานที่: ${val('place')}
-I – Injury / Illness:
+
+I – Injury (การบาดเจ็บ)
 ${val('symptoms')}
-S – Signs:
+
+S – Signs (อาการและสัญญาณชีพ)
 ${vitals}
-Pupils R${$('pR').value}/L${$('pL').value} mm | GCS ${g}
-T – Treatment:
+Pupils: R ${$('pR').value} mm / L ${$('pL').value} mm (RTL)
+GCS: ${g}
+U/D: ${val('ud')}
+
+T – Treatment (การช่วยเหลือ)
 ${val('treatment')}`;
 }
 let currentReport='';
@@ -145,15 +165,15 @@ for(const id of numeric){const x=$(id).value.trim();if(x && !/^[0-9]+([./][0-9]+
 if($('bp').value.trim() && !/^\d{2,3}\s*\/\s*\d{2,3}$/.test($('bp').value.trim())){alert('กรุณากรอก BP ในรูปแบบ เช่น 120/80');$('bp').focus();return}
 if($('spo2').value && (+$('spo2').value<0||+$('spo2').value>100)){alert('SpO₂ ต้องอยู่ระหว่าง 0–100');return}
 if($('age').value && +$('age').value<0){alert('กรุณาระบุอายุให้ถูกต้อง');return}
-currentReport=makeReport();$('report').textContent=currentReport;$('resultCard').hidden=false;$('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
+currentReport=makeReport();$('reportHeading').textContent=selectedCaseType()==='patient'?'รายงานส่งเวร SBAR':'รายงานส่งเวร MIST';$('report').textContent=currentReport;$('resultCard').hidden=false;$('resultCard').scrollIntoView({behavior:'smooth',block:'start'});
 });
 function toast(s){$('toast').textContent=s;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2300)}
 async function copyText(t){try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t)}else{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.append(a);a.select();if(!document.execCommand('copy'))throw Error();a.remove()}toast('คัดลอกข้อความแล้ว')}catch(e){toast('คัดลอกไม่สำเร็จ กรุณาเปิดผ่าน Safari/Chrome และลองอีกครั้ง')}}
 $('copyBtn').addEventListener('click',()=>copyText(currentReport));
 function getRecords(){try{return JSON.parse(localStorage.getItem('vs_patient_records')||'[]')}catch(e){return []}}
 function renderRecords(){const arr=getRecords();const root=$('records');root.innerHTML='';if(!arr.length){root.innerHTML='<p class="hint">ยังไม่มีรายการที่บันทึก</p>';return}
-arr.forEach((r,i)=>{const div=document.createElement('div');div.className='record';const head=document.createElement('div');head.className='record-head';const info=document.createElement('div');const strong=document.createElement('strong');strong.textContent=(r.place||'ไม่ระบุสถานที่')+' · '+(r.date||'');const small=document.createElement('small');small.textContent=`${r.gender||''} ${r.age||''} ปี · ${r.gcs||''}`;info.append(strong,document.createElement('br'),small);const controls=document.createElement('div');const view=document.createElement('button');view.className='secondary';view.textContent='ดู';view.style.width='auto';view.style.minHeight='38px';view.addEventListener('click',()=>{currentReport=r.report;$('report').textContent=r.report;$('resultCard').hidden=false;$('resultCard').scrollIntoView({behavior:'smooth'})});const del=document.createElement('button');del.className='danger';del.textContent='ลบ';del.style.marginLeft='5px';del.addEventListener('click',()=>{if(confirm('ลบรายการนี้หรือไม่?')){const a=getRecords();a.splice(i,1);localStorage.setItem('vs_patient_records',JSON.stringify(a));renderRecords()}});controls.append(view,del);head.append(info,controls);div.append(head);root.append(div)})}
-$('saveBtn').addEventListener('click',()=>{try{const r={date:val('date'),place:val('place'),gender:val('gender'),age:val('age'),gcs:`E${$('gE').value}V${$('gV').value}M${$('gM').value}`,report:currentReport};const a=getRecords();a.unshift(r);localStorage.setItem('vs_patient_records',JSON.stringify(a));renderRecords();toast('บันทึกข้อมูลในเครื่องแล้ว')}catch(e){toast('บันทึกไม่สำเร็จ พื้นที่จัดเก็บอาจเต็ม')}});
+arr.forEach((r,i)=>{const div=document.createElement('div');div.className='record';const head=document.createElement('div');head.className='record-head';const info=document.createElement('div');const strong=document.createElement('strong');strong.textContent=(r.type==='injury'?'ผู้บาดเจ็บ':'ผู้ป่วย')+' · '+(r.place||'ไม่ระบุสถานที่')+' · '+(r.date||'');const small=document.createElement('small');small.textContent=`${r.gender||''} ${r.age||''} ปี · ${r.gcs||''}`;info.append(strong,document.createElement('br'),small);const controls=document.createElement('div');const view=document.createElement('button');view.className='secondary';view.textContent='ดู';view.style.width='auto';view.style.minHeight='38px';view.addEventListener('click',()=>{currentReport=r.report;$('reportHeading').textContent=r.type==='injury'?'รายงานส่งเวร MIST':'รายงานส่งเวร SBAR';$('report').textContent=r.report;$('resultCard').hidden=false;$('resultCard').scrollIntoView({behavior:'smooth'})});const del=document.createElement('button');del.className='danger';del.textContent='ลบ';del.style.marginLeft='5px';del.addEventListener('click',()=>{if(confirm('ลบรายการนี้หรือไม่?')){const a=getRecords();a.splice(i,1);localStorage.setItem('vs_patient_records',JSON.stringify(a));renderRecords()}});controls.append(view,del);head.append(info,controls);div.append(head);root.append(div)})}
+$('saveBtn').addEventListener('click',()=>{try{const r={type:selectedCaseType(),date:val('date'),place:val('place'),gender:val('gender'),age:val('age'),gcs:`E${$('gE').value}V${$('gV').value}M${$('gM').value}`,report:currentReport};const a=getRecords();a.unshift(r);localStorage.setItem('vs_patient_records',JSON.stringify(a));renderRecords();toast('บันทึกข้อมูลในเครื่องแล้ว')}catch(e){toast('บันทึกไม่สำเร็จ พื้นที่จัดเก็บอาจเต็ม')}});
 renderRecords();updateGcs();
 </script>
 <script>
